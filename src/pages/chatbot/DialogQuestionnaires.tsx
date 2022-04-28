@@ -87,9 +87,11 @@ const DialogQuestionnaires: React.FC = () => {
   const [type, setType] = useState('');
   const [text, setText] = useState('');
   const [stateRadio, setStateRadio] = useState('');
-  const [stateCheckBox, setStateCheckBox] = useState(['']);
+  const [stateCheckBox, setStateCheckBox] = useState([]);
   const [dialogComp, setDialogComp] = useState([<React.Fragment key={'no answer'} />]);
   const [answer, setAnwser] = useState([<React.Fragment key={'no answer'} />]);
+  const [disable, setDisable] = useState(false);
+  const [oneMoreTime, setOneMoreTime] = useState(true);
 
   const addQuestionAnswer = useCallback(
     function () {
@@ -104,7 +106,6 @@ const DialogQuestionnaires: React.FC = () => {
         </div>,
       ]);
 
-      console.log('metric : ' + question?.metric);
       switch (question?.metric) {
         case 'Radio':
           setAnwser([
@@ -118,9 +119,7 @@ const DialogQuestionnaires: React.FC = () => {
         case 'Checkbox':
           setAnwser([
             <AnswerCheckbox
-              onChange={(e) =>
-                setStateCheckBox((oldElement) => [...oldElement, e.target.value + ', '])
-              }
+              onChange={(checkedValue) => setStateCheckBox(checkedValue)}
               key={'answer' + questions.length}
               listAnswer={question.metric_values}
             />,
@@ -143,49 +142,78 @@ const DialogQuestionnaires: React.FC = () => {
     [questions],
   );
 
-  function send() {
-    if (questions.length != 0) {
-      console.log('type : ' + stateCheckBox);
-      switch (type) {
-        case 'Radio':
-          setDialogComp((oldDialogComp) => [
-            ...oldDialogComp,
-            <div className="answer" key={'dialog' + questions.length}>
-              <p>{stateRadio}</p>
-            </div>,
-          ]);
-          break;
-        case 'Checkbox':
-          setDialogComp((oldDialogComp) => [
-            ...oldDialogComp,
-            <div className="answer" key={'dialog' + questions.length}>
-              {' '}
-              <p>{stateCheckBox}</p>
-            </div>,
-          ]);
-          break;
-        case 'Likert':
-          setDialogComp((oldDialogComp) => [
-            ...oldDialogComp,
-            <div className="answer" key={'dialog' + questions.length}>
-              {' '}
-              <p>{stateRadio}</p>
-            </div>,
-          ]);
-          break;
-        default:
-          setDialogComp((oldDialogComp) => [
-            ...oldDialogComp,
-            <div className="answer" key={'dialog' + questions.length}>
-              {' '}
-              <p>{text}</p>{' '}
-            </div>,
-          ]);
-          break;
+  function addAnswer() {
+    switch (type) {
+      case 'Radio':
+        setDialogComp((oldDialogComp) => [
+          ...oldDialogComp,
+          <div className="answer" key={'dialog' + questions.length}>
+            <p>{stateRadio}</p>
+          </div>,
+        ]);
+        break;
+      case 'Checkbox':
+        setDialogComp((oldDialogComp) => [
+          ...oldDialogComp,
+          <div className="answer" key={'dialog' + questions.length}>
+            {' '}
+            <p>{stateCheckBox.join(', ')}</p>
+          </div>,
+        ]);
+        break;
+      case 'Likert':
+        setDialogComp((oldDialogComp) => [
+          ...oldDialogComp,
+          <div className="answer" key={'dialog' + questions.length}>
+            {' '}
+            <p>{stateRadio}</p>
+          </div>,
+        ]);
+        break;
+      default:
+        setDialogComp((oldDialogComp) => [
+          ...oldDialogComp,
+          <div className="answer" key={'dialog' + questions.length}>
+            {' '}
+            <p>{text}</p>{' '}
+          </div>,
+        ]);
+        break;
+    }
+  }
+
+  function sendAnswer() {
+    if (questions.length == 0) {
+      if (oneMoreTime == false) {
+        setDisable(true);
+      } else {
+        setOneMoreTime(false);
+        addAnswer();
       }
+    } else {
+      addAnswer();
       addQuestionAnswer();
     }
     setText('');
+  }
+
+  function inputNotNUll() {
+    return text != '' || (type != 'Free-Text' && type != 'Number');
+  }
+
+  function checkboxNotNull() {
+    return stateCheckBox.length != 0 || type != 'Checkbox';
+  }
+
+  function radioNotNull() {
+    return stateRadio != '' || (type != 'Likert' && type != 'Radio');
+  }
+
+  function send() {
+    console.log(stateCheckBox);
+    if (inputNotNUll() && checkboxNotNull() && radioNotNull()) {
+      sendAnswer();
+    }
   }
 
   useEffect(() => {
@@ -210,7 +238,7 @@ const DialogQuestionnaires: React.FC = () => {
                 onChange={(e) => setText(e.target.value)}
                 disabled={type === 'Likert' || type === 'Radio' || type === 'Checkbox'}
               />
-              <Button type="primary" onClick={send}>
+              <Button type="primary" onClick={send} disabled={disable}>
                 Send
               </Button>
             </Space>

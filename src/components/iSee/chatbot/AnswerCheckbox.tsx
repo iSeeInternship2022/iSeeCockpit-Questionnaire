@@ -3,9 +3,9 @@ import { Checkbox } from 'antd';
 
 const AnswerCheckbox: React.FC = ({ listAnswer, onChange }) => {
   return (
-    <Checkbox.Group>
+    <Checkbox.Group onChange={onChange}>
       {listAnswer.map((element: any, idx: number) => (
-        <Checkbox onChange={onChange} value={element.val} key={idx}>
+        <Checkbox value={element.val} key={idx}>
           {element.val}
         </Checkbox>
       ))}

@@ -1,7 +1,10 @@
 import React from 'react';
 import { Checkbox } from 'antd';
 
-const AnswerCheckbox: React.FC = ({ listAnswer, onChange }) => {
+const AnswerCheckbox: React.FC<{
+  listAnswer: string[];
+  onChange: (options: any) => void;
+}> = ({ listAnswer, onChange }) => {
   return (
     <Checkbox.Group onChange={onChange}>
       {listAnswer.map((element: any, idx: number) => (

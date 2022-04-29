@@ -1,7 +1,7 @@
 import React from 'react';
-import { Radio } from 'antd';
+import { Radio, Space } from 'antd';
 
-const AnswerRadio = ({ listAnswer, /* onClick */ onChange }) => {
+const AnswerRadio = ({ listAnswer, onChange }) => {
   const [value, setValue] = React.useState();
 
   const isChanged = (e) => {
@@ -11,15 +11,13 @@ const AnswerRadio = ({ listAnswer, /* onClick */ onChange }) => {
   return (
     <div>
       <Radio.Group onChange={isChanged} value={value}>
-        {listAnswer.map((element: any, idx: number) => (
-          <Radio
-            /* onClick={onClick} */ onChange={onChange}
-            value={element.val}
-            key={'radio' + idx}
-          >
-            {element.val}
-          </Radio>
-        ))}
+        <Space size={20}>
+          {listAnswer.map((element: any) => (
+            <Radio.Button onChange={onChange} value={element.val} key={'radio' + element.length}>
+              {element.val}
+            </Radio.Button>
+          ))}
+        </Space>
       </Radio.Group>
     </div>
   );

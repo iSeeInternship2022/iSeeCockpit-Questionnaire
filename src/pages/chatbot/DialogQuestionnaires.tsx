@@ -4,19 +4,24 @@ import { Button, Card, Layout, Input, Space } from 'antd';
 
 import './DialogQuestionnaires.less';
 
-import AnswerLikert from '@/components/iSee/chatbot/AnswerLikert';
+//import AnswerLikert from '@/components/iSee/chatbot/AnswerLikert';
 import AnswerCheckbox from '@/components/iSee/chatbot/AnswerCheckbox';
 import AnswerRadio from '@/components/iSee/chatbot/AnswerRadio';
 
+interface Question {
+  id?: string;
+  text?: string;
+  metric?: string;
+  category?: string;
+  metric_values?: {
+    val: string;
+  }[];
+  required?: boolean;
+  completed?: boolean;
+}
+
 const json = {
   questions: [
-    {
-      text: 'This is a free text question',
-      category: 'Goodness',
-      required: false,
-      metric: 'Free-Text',
-      id: 'q-789801',
-    },
     {
       text: 'This is a checkbox question (e.g. modes of transport used)',
       category: 'Mental Model',
@@ -78,41 +83,48 @@ const json = {
       ],
       id: 'q-5661',
     },
+    {
+      text: 'This is a free text question',
+      category: 'Goodness',
+      required: false,
+      metric: 'Free-Text',
+      id: 'q-789801',
+    },
   ],
 };
 
 const DialogQuestionnaires: React.FC = () => {
+  const { Footer, Content } = Layout;
   const questions = useMemo(() => json.questions, []);
-
   const [type, setType] = useState('');
   const [text, setText] = useState('');
   const [stateRadio, setStateRadio] = useState('');
-  const [stateCheckBox, setStateCheckBox] = useState([]);
-  const [dialogComp, setDialogComp] = useState([<React.Fragment key={'no answer'} />]);
+  const [stateCheckBox, setStateCheckBox] = useState<string[]>([]);
+  const [dialogComp, setDialogComp] = useState<JSX.Element[]>([]);
   const [answer, setAnwser] = useState([<React.Fragment key={'no answer'} />]);
   const [disable, setDisable] = useState(false);
-  const [oneMoreTime, setOneMoreTime] = useState(true);
+  const [question, setQuestion] = useState<Question>();
+  const [error, setError] = useState<string>('');
 
-  const addQuestionAnswer = useCallback(
-    function () {
-      const question = questions.shift();
-      setType(question?.metric || 'Free-Text');
+  const addQuestion = useCallback(function (currentQuestion) {
+    setDialogComp((oldQuestionComp) => [
+      ...oldQuestionComp,
+      <div className="question" key={'question' + oldQuestionComp}>
+        <p>{currentQuestion?.text}</p>
+      </div>,
+    ]);
+  }, []);
 
-      setDialogComp((oldQuestionComp) => [
-        ...oldQuestionComp,
-        <div className="question" key={'question' + questions.length}>
-          {' '}
-          <h1>{question?.text}</h1>
-        </div>,
-      ]);
-
-      switch (question?.metric) {
+  const addTypeAnswerFooter = useCallback(
+    function (currentQuestion) {
+      setType(currentQuestion?.metric || 'Free-Text');
+      switch (currentQuestion?.metric) {
         case 'Radio':
           setAnwser([
             <AnswerRadio
-              /* onClick={send} */ onChange={(e) => setStateRadio(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStateRadio(e.target.value)}
               key={'answer' + questions.length}
-              listAnswer={question.metric_values}
+              listAnswer={currentQuestion.metric_values}
             />,
           ]);
           break;
@@ -121,16 +133,16 @@ const DialogQuestionnaires: React.FC = () => {
             <AnswerCheckbox
               onChange={(checkedValue) => setStateCheckBox(checkedValue)}
               key={'answer' + questions.length}
-              listAnswer={question.metric_values}
+              listAnswer={currentQuestion.metric_values}
             />,
           ]);
           break;
         case 'Likert':
           setAnwser([
-            <AnswerLikert
-              /* onClick={send }*/ key={'answer' + questions.length}
-              onChange={(e) => setStateRadio(e.target.value)}
-              listAnswer={question.metric_values}
+            <AnswerRadio
+              key={'answer' + questions.length}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStateRadio(e.target.value)}
+              listAnswer={currentQuestion.metric_values}
             />,
           ]);
           break;
@@ -147,7 +159,7 @@ const DialogQuestionnaires: React.FC = () => {
       case 'Radio':
         setDialogComp((oldDialogComp) => [
           ...oldDialogComp,
-          <div className="answer" key={'dialog' + questions.length}>
+          <div className="answer" key={'answer' + oldDialogComp.length}>
             <p>{stateRadio}</p>
           </div>,
         ]);
@@ -155,8 +167,7 @@ const DialogQuestionnaires: React.FC = () => {
       case 'Checkbox':
         setDialogComp((oldDialogComp) => [
           ...oldDialogComp,
-          <div className="answer" key={'dialog' + questions.length}>
-            {' '}
+          <div className="answer" key={'answer' + oldDialogComp.length}>
             <p>{stateCheckBox.join(', ')}</p>
           </div>,
         ]);
@@ -164,8 +175,7 @@ const DialogQuestionnaires: React.FC = () => {
       case 'Likert':
         setDialogComp((oldDialogComp) => [
           ...oldDialogComp,
-          <div className="answer" key={'dialog' + questions.length}>
-            {' '}
+          <div className="answer" key={'answer' + oldDialogComp.length}>
             <p>{stateRadio}</p>
           </div>,
         ]);
@@ -173,9 +183,8 @@ const DialogQuestionnaires: React.FC = () => {
       default:
         setDialogComp((oldDialogComp) => [
           ...oldDialogComp,
-          <div className="answer" key={'dialog' + questions.length}>
-            {' '}
-            <p>{text}</p>{' '}
+          <div className="answer" key={'answer' + oldDialogComp.length}>
+            <p>{text}</p>
           </div>,
         ]);
         break;
@@ -183,18 +192,31 @@ const DialogQuestionnaires: React.FC = () => {
   }
 
   function sendAnswer() {
-    if (questions.length == 0) {
-      if (oneMoreTime == false) {
-        setDisable(true);
-      } else {
-        setOneMoreTime(false);
-        addAnswer();
-      }
-    } else {
-      addAnswer();
-      addQuestionAnswer();
+    if (dialogComp.length % 2) addAnswer();
+    if (questions.length !== 0) {
+      setQuestion(questions.shift());
     }
+    if (questions.length == 0 && !(dialogComp.length % 2)) {
+      setDisable(true);
+      setType('Radio');
+    }
+
     setText('');
+    setStateRadio('');
+    setError('');
+  }
+
+  function send() {
+    if (inputNotNUll() && checkboxNotNull() && radioNotNull()) {
+      sendAnswer();
+    }
+    if (!inputNotNUll()) {
+      sendError();
+    }
+  }
+
+  function sendError() {
+    setError('Please, answer the question');
   }
 
   function inputNotNUll() {
@@ -209,41 +231,43 @@ const DialogQuestionnaires: React.FC = () => {
     return stateRadio != '' || (type != 'Likert' && type != 'Radio');
   }
 
-  function send() {
-    console.log(stateCheckBox);
-    if (inputNotNUll() && checkboxNotNull() && radioNotNull()) {
-      sendAnswer();
-    }
-  }
+  useEffect(() => {
+    setQuestion(questions.shift());
+    console.log('render');
+  }, [questions]);
 
   useEffect(() => {
-    addQuestionAnswer();
-  }, [addQuestionAnswer]);
+    console.log('render 2');
+    if (!question) return;
+    addQuestion(question);
+    addTypeAnswerFooter(question);
+  }, [addQuestion, addTypeAnswerFooter, question]);
 
   return (
     <Card
       title="iSee ChatBot"
       extra={<a onClick={() => window.location.reload()}>Restart</a>}
-      style={{ width: '80%', height: 'content-card', margin: 'auto' }}
+      id="card"
     >
       <Layout id="layout">
-        <Layout.Content id="content-card">{dialogComp}</Layout.Content>
-        <Layout.Footer id="footer">
-          <Space direction="vertical">
+        <Content id="content-card">{[...dialogComp.slice().reverse()]}</Content>
+        <Footer id="footer">
+          <Space align="center" direction="vertical">
             {answer}
-            <Space id="fixed" direction="horizontal">
+            <Space /* id="fixed" */ direction="horizontal">
               <Input
-                placeholder="Answer"
+                placeholder={error == '' ? 'Answer' : error}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value)}
                 disabled={type === 'Likert' || type === 'Radio' || type === 'Checkbox'}
+                id="input"
               />
               <Button type="primary" onClick={send} disabled={disable}>
                 Send
               </Button>
             </Space>
           </Space>
-        </Layout.Footer>
+        </Footer>
       </Layout>
     </Card>
   );

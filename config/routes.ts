@@ -35,7 +35,7 @@
   {
     path: '/chatbot',
     name: 'Chatbot',
-    icon: 'question',
+    icon: 'RobotOutlined',
     component: './chatbot/DialogQuestionnaires',
   },
   // {

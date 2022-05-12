@@ -12,8 +12,8 @@ const AnswerRadio = ({ listAnswer, onChange }) => {
     <div>
       <Radio.Group onChange={isChanged} value={value}>
         <Space size={20}>
-          {listAnswer.map((element: any) => (
-            <Radio.Button onChange={onChange} value={element.val} key={'radio' + element.length}>
+          {listAnswer.map((element: any, idx: number) => (
+            <Radio.Button onChange={onChange} value={element.val} key={'radio' + idx}>
               {element.val}
             </Radio.Button>
           ))}

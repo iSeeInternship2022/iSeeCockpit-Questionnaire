@@ -11,9 +11,14 @@ const AnswerRadio = ({ listAnswer, onChange }) => {
   return (
     <div>
       <Radio.Group onChange={isChanged} value={value}>
-        <Space size={20}>
+        <Space size={20} direction="horizontal" wrap id="spaceRadio">
           {listAnswer.map((element: any, idx: number) => (
-            <Radio.Button onChange={onChange} value={element.val} key={'radio' + idx}>
+            <Radio.Button
+              onChange={onChange}
+              value={element.val}
+              key={'radio' + idx}
+              className="radioButton"
+            >
               {element.val}
             </Radio.Button>
           ))}
